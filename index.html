@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>Marqueur ringuette</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161c24; --card2: #1f2833; --line: #2b3542;
+    --text: #eef3f8; --muted: #8b98a8; --ice: #8fd3ff; --red: #ff5252; --ok: #4caf50; --warn: #ffb300;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { padding: max(12px, env(safe-area-inset-top)) 14px max(24px, env(safe-area-inset-bottom)); }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+  .wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 12px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  h1 { font-size: 18px; margin: 0; letter-spacing: .02em; }
+  .pill { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: var(--card2); color: var(--muted); white-space: nowrap; }
+  .pill.ok { color: var(--ok); } .pill.warn { color: var(--warn); } .pill.err { color: var(--red); }
+
+  /* Aperçu de la bande telle qu'elle apparaît sur la vidéo */
+  .bug { display: flex; height: 44px; border-radius: 9px; overflow: hidden; background: #101418; font-weight: 800; text-transform: uppercase; }
+  .bug .t { display: flex; flex: 1 1 0; min-width: 0; }
+  .bug .stripe { width: 6px; flex: none; }
+  .bug .nm { flex: 1; min-width: 0; padding: 0 8px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 15px; }
+  .bug .sc { width: 40px; flex: none; background: #f4f7fa; color: #101418; display: grid; place-items: center; font-size: 22px; }
+  .bug .info { flex: none; padding: 0 12px; background: #263240; display: grid; place-items: center; font: 700 15px ui-monospace, Menlo, monospace; }
+  .bug.hidden { opacity: .35; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+  .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .team { display: grid; gap: 10px; border-top: 5px solid var(--c, #1E88E5); }
+  .team input { width: 100%; background: var(--card2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 9px 10px; font: 700 16px system-ui, sans-serif; text-transform: uppercase; }
+  .score { font: 800 64px/1 system-ui, sans-serif; text-align: center; font-variant-numeric: tabular-nums; }
+  .plus { background: var(--c, #1E88E5); color: var(--on, #fff); border-radius: 14px; height: 76px; font-size: 40px; font-weight: 800;
+    text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+  .plus:active, .minus:active, .seg button:active, .ctl:active { transform: scale(.97); }
+  .minus { background: var(--card2); border-radius: 12px; height: 44px; font-size: 24px; color: var(--muted); }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatches button { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+  .swatches button.on { border-color: #fff; box-shadow: 0 0 0 2px var(--bg) inset; }
+
+  .label { font-size: 13px; color: var(--muted); margin: 0 0 8px; text-transform: uppercase; letter-spacing: .06em; }
+  .seg { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .seg button { background: var(--card2); border-radius: 10px; padding: 12px 0; font-weight: 700; font-size: 15px; }
+  .seg button.on { background: var(--ice); color: #06222f; }
+
+  .clock { display: grid; gap: 10px; }
+  .time { font: 800 56px/1 ui-monospace, Menlo, monospace; text-align: center; padding: 6px 0; border-radius: 12px; background: var(--card2); }
+  .time.run { color: var(--ice); }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .ctl { background: var(--card2); border-radius: 10px; padding: 11px 0; font-weight: 700; }
+  .go { height: 60px; border-radius: 14px; font-size: 20px; font-weight: 800; background: var(--ok); color: #06210a; }
+  .go.stop { background: var(--red); color: #fff; }
+
+  .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; }
+  .switch { position: relative; width: 52px; height: 30px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch span { position: absolute; inset: 0; background: var(--card2); border: 1px solid var(--line); border-radius: 999px; transition: .2s; }
+  .switch span::after { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; }
+  .switch input:checked + span { background: var(--ok); }
+  .switch input:checked + span::after { transform: translateX(22px); }
+  .disabled { opacity: .4; pointer-events: none; }
+
+  .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
+  .foot { text-align: center; color: var(--muted); font-size: 12px; }
+  .reset { background: none; color: var(--muted); text-decoration: underline; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <h1>🥅 Marqueur ringuette</h1>
+    <span class="pill" id="net">Connexion…</span>
+  </header>
+
+  <div class="bug" id="bug" aria-label="Aperçu sur la vidéo">
+    <div class="t"><div class="stripe" id="bugHc"></div><div class="nm" id="bugHn"></div><div class="sc" id="bugHs"></div></div>
+    <div class="t"><div class="stripe" id="bugAc"></div><div class="nm" id="bugAn"></div><div class="sc" id="bugAs"></div></div>
+    <div class="info" id="bugInfo"></div>
+  </div>
+
+  <div class="teams">
+    <section class="card team" id="homeCard">
+      <input id="homeName" maxlength="16" autocomplete="off" aria-label="Nom de l'équipe locale">
+      <div class="swatches" id="homeSw"></div>
+      <div class="score" id="homeScore">0</div>
+      <button class="plus" id="homePlus" aria-label="But équipe locale">+1</button>
+      <button class="minus" id="homeMinus" aria-label="Retirer un but">−</button>
+    </section>
+    <section class="card team" id="awayCard">
+      <input id="awayName" maxlength="16" autocomplete="off" aria-label="Nom de l'équipe visiteuse">
+      <div class="swatches" id="awaySw"></div>
+      <div class="score" id="awayScore">0</div>
+      <button class="plus" id="awayPlus" aria-label="But équipe visiteuse">+1</button>
+      <button class="minus" id="awayMinus" aria-label="Retirer un but">−</button>
+    </section>
+  </div>
+
+  <section class="card">
+    <p class="label">Période</p>
+    <div class="seg" id="periods"></div>
+  </section>
+
+  <section class="card clock">
+    <div class="toggle">
+      <strong>Chrono sur la vidéo</strong>
+      <label class="switch"><input type="checkbox" id="clockOn"><span></span></label>
+    </div>
+    <div id="clockBox" class="clock">
+      <button class="time" id="time" aria-label="Changer le temps">15:00</button>
+      <button class="go" id="go">▶ Démarrer</button>
+      <div class="row">
+        <button class="ctl" data-adj="-60000">−1:00</button>
+        <button class="ctl" data-adj="-1000">−0:01</button>
+        <button class="ctl" data-adj="1000">+0:01</button>
+        <button class="ctl" data-adj="60000">+1:00</button>
+      </div>
+      <button class="ctl" id="clockReset">↺ Remettre à <span id="presetTxt">15:00</span></button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="toggle">
+      <strong>Afficher le pointage sur la vidéo</strong>
+      <label class="switch"><input type="checkbox" id="showOn" checked><span></span></label>
+    </div>
+  </section>
+
+  <div class="foot">
+    Les changements s'affichent sur le direct en 1 à 2 secondes.<br>
+    <button class="reset" id="newGame">Nouveau match (pointage à 0)</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const SERVER = "https://ntfy.sh";
+  const COLORS = ["#1E88E5", "#E53935", "#43A047", "#FDD835", "#FB8C00", "#8E24AA", "#212121", "#FAFAFA"];
+  const PERIODS = ["1re", "2e", "3e", "4e", "Prol.", "Fin"];
+  const $ = (id) => document.getElementById(id);
+
+  // ── Sujet ntfy : vient du lien partagé par l'app (#t=…) ──
+  const topic = new URLSearchParams(location.hash.slice(1)).get("t");
+  if (!topic || !/^[A-Za-z0-9_-]{8,64}$/.test(topic)) {
+    $("app").innerHTML = '<div class="empty"><h1>🥅 Marqueur ringuette</h1><p>Ouvre le lien partagé depuis l\'app Ringuette Live (bouton 🥅), ou scanne son code QR.</p></div>';
+    return;
+  }
+  const SRC = Math.random().toString(36).slice(2, 10); // identifie cette page (ignorer nos propres échos)
+
+  // ── Mémoire locale (noms et couleurs d'un match à l'autre) ──
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+
+  // ── État ──
+  const saved = store.get("ringuette:" + topic, null);
+  const s = saved || {
+    home: { name: "Locaux", color: "#1E88E5", score: 0 },
+    away: { name: "Visiteurs", color: "#E53935", score: 0 },
+    period: "1re", show: true,
+    clock: { enabled: false, running: false, remainingMs: 15 * 60000 },
+    presetMs: 15 * 60000,
+  };
+  s.clock.running = false; // jamais redémarrer un chrono tout seul au rechargement
+  let runFrom = 0, runBase = s.clock.remainingMs; // chrono local : base au moment du départ
+
+  const remaining = () => s.clock.running
+    ? Math.max(0, runBase - (performance.now() - runFrom))
+    : s.clock.remainingMs;
+  const light = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 170; };
+  const fmt = (ms) => { const t = Math.ceil(ms / 1000); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); };
+
+  // ── Envoi vers ntfy (l'app écoute ce sujet) ──
+  let sendTimer = null, sending = false, again = false;
+  function snapshot() {
+    return {
+      v: 1, src: SRC, ts: Date.now(), show: s.show, period: s.period,
+      home: { ...s.home }, away: { ...s.away },
+      clock: { enabled: s.clock.enabled, running: s.clock.running, remainingMs: Math.round(remaining()) },
+    };
+  }
+  function queueSend(delay = 250) {
+    store.set("ringuette:" + topic, { ...s, clock: { ...s.clock, running: false, remainingMs: Math.round(remaining()) } });
+    clearTimeout(sendTimer);
+    sendTimer = setTimeout(send, delay);
+    net("Envoi…", "");
+  }
+  async function send() {
+    if (sending) { again = true; return; }
+    sending = true;
+    const body = JSON.stringify(snapshot());
+    try {
+      let res;
+      try {
+        res = await fetch(SERVER + "/" + topic, { method: "POST", body });
+      } catch (e) {
+        // Si le navigateur bloque la réponse (CORS), le message part quand même
+        await fetch(SERVER + "/" + topic, { method: "POST", body, mode: "no-cors" });
+        res = { ok: true };
+      }
+      if (res.status === 429) { net("Trop rapide — réessai…", "warn"); setTimeout(send, 5000); }
+      else if (!res.ok) { net("Erreur " + res.status + " — réessai…", "err"); setTimeout(send, 3000); }
+      else net("✓ Envoyé", "ok");
+    } catch (e) {
+      net("Hors ligne — réessai…", "err");
+      setTimeout(send, 3000);
+    } finally {
+      sending = false;
+      if (again) { again = false; send(); }
+    }
+  }
+  function net(text, cls) { const p = $("net"); p.textContent = text; p.className = "pill " + cls; }
+
+  // ── Réception (autre marqueur sur le même lien, ou rechargement de la page) ──
+  function applyRemote(msg) {
+    let o; try { o = JSON.parse(msg); } catch { return; }
+    if (!o || o.src === SRC || !o.home || !o.away) return;
+    s.home = { name: o.home.name || "Locaux", color: o.home.color || "#1E88E5", score: o.home.score | 0 };
+    s.away = { name: o.away.name || "Visiteurs", color: o.away.color || "#E53935", score: o.away.score | 0 };
+    s.period = o.period || s.period;
+    s.show = o.show !== false;
+    const c = o.clock || {};
+    s.clock.enabled = !!c.enabled;
+    const lag = Math.max(0, Date.now() - (o.ts || Date.now()));
+    s.clock.remainingMs = Math.max(0, (c.remainingMs || 0) - (c.running ? lag : 0));
+    s.clock.running = !!c.running && s.clock.remainingMs > 0;
+    if (s.clock.running) { runBase = s.clock.remainingMs; runFrom = performance.now(); }
+    render();
+  }
+  async function loadLatest() {
+    try {
+      const r = await fetch(SERVER + "/" + topic + "/json?poll=1&since=latest");
+      const lines = (await r.text()).trim().split("\n").filter(Boolean);
+      const last = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+      if (last && last.message) applyRemote(last.message);
+      net("Relié", "ok");
+    } catch { net("Relié (lecture limitée)", "warn"); }
+    try {
+      const es = new EventSource(SERVER + "/" + topic + "/sse");
+      es.onmessage = (ev) => { try { const m = JSON.parse(ev.data); if (m.event === "message") applyRemote(m.message); } catch {} };
+    } catch {}
+  }
+
+  // ── Interface ──
+  function swatches(side) {
+    const box = $(side + "Sw");
+    box.innerHTML = "";
+    COLORS.forEach((c) => {
+      const b = document.createElement("button");
+      b.style.background = c;
+      b.setAttribute("aria-label", "Couleur " + c);
+      b.onclick = () => { s[side].color = c; render(); queueSend(); };
+      box.appendChild(b);
+    });
+  }
+  function periods() {
+    const box = $("periods");
+    PERIODS.forEach((p) => {
+      const b = document.createElement("button");
+      b.textContent = p;
+      b.onclick = () => { s.period = p; render(); queueSend(); };
+      box.appendChild(b);
+    });
+  }
+  function render() {
+    for (const side of ["home", "away"]) {
+      const t = s[side];
+      $(side + "Card").style.setProperty("--c", t.color);
+      $(side + "Card").style.setProperty("--on", light(t.color) ? "#111" : "#fff");
+      if (document.activeElement !== $(side + "Name")) $(side + "Name").value = t.name;
+      $(side + "Score").textContent = t.score;
+      [...$(side + "Sw").children].forEach((b, i) => b.classList.toggle("on", COLORS[i] === t.color));
+      $(side === "home" ? "bugHc" : "bugAc").style.background = t.color;
+      $(side === "home" ? "bugHn" : "bugAn").textContent = t.name;
+      $(side === "home" ? "bugHs" : "bugAs").textContent = t.score;
+    }
+    [...$("periods").children].forEach((b) => b.classList.toggle("on", b.textContent === s.period));
+    $("clockOn").checked = s.clock.enabled;
+    $("clockBox").classList.toggle("disabled", !s.clock.enabled);
+    $("showOn").checked = s.show;
+    $("bug").classList.toggle("hidden", !s.show);
+    $("presetTxt").textContent = fmt(s.presetMs);
+    tick();
+  }
+  function tick() {
+    const r = remaining();
+    if (s.clock.running && r <= 0) { // fin de période
+      s.clock.running = false; s.clock.remainingMs = 0;
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      queueSend(0);
+    }
+    $("time").textContent = fmt(r);
+    $("time").classList.toggle("run", s.clock.running);
+    $("go").textContent = s.clock.running ? "■ Arrêter" : "▶ Démarrer";
+    $("go").classList.toggle("stop", s.clock.running);
+    $("bugInfo").textContent = (s.period + (s.clock.enabled ? "  " + fmt(r) : "")).toUpperCase();
+  }
+
+  function goal(side, delta) {
+    s[side].score = Math.max(0, s[side].score + delta);
+    if (navigator.vibrate) navigator.vibrate(delta > 0 ? 30 : 10);
+    render(); queueSend();
+  }
+  ["home", "away"].forEach((side) => {
+    swatches(side);
+    $(side + "Plus").onclick = () => goal(side, 1);
+    $(side + "Minus").onclick = () => goal(side, -1);
+    $(side + "Name").oninput = (e) => { s[side].name = e.target.value.trim() || (side === "home" ? "Locaux" : "Visiteurs"); render(); queueSend(800); };
+  });
+  periods();
+
+  $("go").onclick = () => {
+    if (s.clock.running) { s.clock.remainingMs = remaining(); s.clock.running = false; }
+    else if (remaining() > 0) { runBase = s.clock.remainingMs; runFrom = performance.now(); s.clock.running = true; keepAwake(); }
+    render(); queueSend(0);
+  };
+  document.querySelectorAll("[data-adj]").forEach((b) => b.onclick = () => {
+    const d = +b.dataset.adj;
+    if (s.clock.running) { runBase = Math.max(0, runBase + d); } else { s.clock.remainingMs = Math.max(0, s.clock.remainingMs + d); }
+    render(); queueSend(400);
+  });
+  $("time").onclick = () => {
+    if (s.clock.running) return;
+    const v = prompt("Temps de la période (min:sec)", fmt(s.clock.remainingMs));
+    const m = v && v.trim().match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+    if (!m) return;
+    const ms = ((+m[1]) * 60 + (+(m[2] || 0))) * 1000;
+    s.clock.remainingMs = ms; s.presetMs = ms;
+    render(); queueSend(0);
+  };
+  $("clockReset").onclick = () => {
+    s.clock.running = false; s.clock.remainingMs = s.presetMs;
+    render(); queueSend(0);
+  };
+  $("clockOn").onchange = (e) => { s.clock.enabled = e.target.checked; render(); queueSend(0); };
+  $("showOn").onchange = (e) => { s.show = e.target.checked; render(); queueSend(0); };
+  $("newGame").onclick = () => {
+    if (!confirm("Remettre le pointage à 0, la période à 1re et le chrono au début?")) return;
+    s.home.score = 0; s.away.score = 0; s.period = "1re";
+    s.clock.running = false; s.clock.remainingMs = s.presetMs;
+    render(); queueSend(0);
+  };
+
+  // Garder l'écran du marqueur allumé pendant le chrono
+  let lock = null;
+  async function keepAwake() {
+    try { if ("wakeLock" in navigator && !lock) { lock = await navigator.wakeLock.request("screen"); lock.addEventListener("release", () => lock = null); } } catch {}
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && s.clock.running) keepAwake(); });
+
+  render();
+  setInterval(tick, 200);
+  loadLatest();
+})();
+</script>
+</body>
+</html>
