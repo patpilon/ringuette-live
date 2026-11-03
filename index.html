@@ -50,6 +50,9 @@
   .seg { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
   .seg button { background: var(--card2); border-radius: 10px; padding: 12px 0; font-weight: 700; font-size: 15px; }
   .seg button.on { background: var(--ice); color: #06222f; }
+  .seg4 { grid-template-columns: repeat(4, 1fr); }
+  .seg4 button { font-size: 13px; padding: 12px 2px; }
+  .hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
 
   .clock { display: grid; gap: 10px; }
   .time { font: 800 56px/1 ui-monospace, Menlo, monospace; text-align: center; padding: 6px 0; border-radius: 12px; background: var(--card2); }
@@ -127,6 +130,12 @@
   </section>
 
   <section class="card">
+    <p class="label">Écran sur le direct</p>
+    <div class="seg seg4" id="screens"></div>
+    <p class="hint">Pendant un écran d'attente, la caméra est cachée et le micro est coupé.</p>
+  </section>
+
+  <section class="card">
     <div class="toggle">
       <strong>Afficher le pointage sur la vidéo</strong>
       <label class="switch"><input type="checkbox" id="showOn" checked><span></span></label>
@@ -145,6 +154,7 @@
   const SERVER = "https://ntfy.sh";
   const COLORS = ["#1E88E5", "#E53935", "#43A047", "#FDD835", "#FB8C00", "#8E24AA", "#212121", "#FAFAFA"];
   const PERIODS = ["1re", "2e", "3e", "4e", "Prol.", "Fin"];
+  const SCREENS = [["", "🎥 Jeu"], ["pre", "Avant-match"], ["break", "Entracte"], ["end", "Fin"]];
   const $ = (id) => document.getElementById(id);
 
   // ── Sujet ntfy : vient du lien partagé par l'app (#t=…) ──
@@ -166,7 +176,7 @@
   const s = saved || {
     home: { name: "Locaux", color: "#1E88E5", score: 0 },
     away: { name: "Visiteurs", color: "#E53935", score: 0 },
-    period: "1re", show: true,
+    period: "1re", show: true, screen: "",
     clock: { enabled: false, running: false, remainingMs: 15 * 60000 },
     presetMs: 15 * 60000,
   };
@@ -183,7 +193,7 @@
   let sendTimer = null, sending = false, again = false;
   function snapshot() {
     return {
-      v: 1, src: SRC, ts: Date.now(), show: s.show, period: s.period,
+      v: 1, src: SRC, ts: Date.now(), show: s.show, period: s.period, screen: s.screen || "",
       home: { ...s.home }, away: { ...s.away },
       clock: { enabled: s.clock.enabled, running: s.clock.running, remainingMs: Math.round(remaining()) },
     };
@@ -228,6 +238,7 @@
     s.away = { name: o.away.name || "Visiteurs", color: o.away.color || "#E53935", score: o.away.score | 0 };
     s.period = o.period || s.period;
     s.show = o.show !== false;
+    s.screen = o.screen || "";
     const c = o.clock || {};
     s.clock.enabled = !!c.enabled;
     const lag = Math.max(0, Date.now() - (o.ts || Date.now()));
@@ -271,6 +282,16 @@
       box.appendChild(b);
     });
   }
+  function screens() {
+    const box = $("screens");
+    SCREENS.forEach(([key, label]) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.dataset.key = key;
+      b.onclick = () => { s.screen = key; render(); queueSend(0); };
+      box.appendChild(b);
+    });
+  }
   function render() {
     for (const side of ["home", "away"]) {
       const t = s[side];
@@ -284,6 +305,7 @@
       $(side === "home" ? "bugHs" : "bugAs").textContent = t.score;
     }
     [...$("periods").children].forEach((b) => b.classList.toggle("on", b.textContent === s.period));
+    [...$("screens").children].forEach((b) => b.classList.toggle("on", b.dataset.key === (s.screen || "")));
     $("clockOn").checked = s.clock.enabled;
     $("clockBox").classList.toggle("disabled", !s.clock.enabled);
     $("showOn").checked = s.show;
@@ -317,6 +339,7 @@
     $(side + "Name").oninput = (e) => { s[side].name = e.target.value.trim() || (side === "home" ? "Locaux" : "Visiteurs"); render(); queueSend(800); };
   });
   periods();
+  screens();
 
   $("go").onclick = () => {
     if (s.clock.running) { s.clock.remainingMs = remaining(); s.clock.running = false; }
@@ -346,7 +369,7 @@
   $("newGame").onclick = () => {
     if (!confirm("Remettre le pointage à 0, la période à 1re et le chrono au début?")) return;
     s.home.score = 0; s.away.score = 0; s.period = "1re";
-    s.clock.running = false; s.clock.remainingMs = s.presetMs;
+    s.clock.running = false; s.clock.remainingMs = s.presetMs; s.screen = "";
     render(); queueSend(0);
   };
 
