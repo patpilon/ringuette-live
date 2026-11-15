@@ -482,6 +482,7 @@
     ["imgSat", "Couleurs"], ["imgSharp", "Netteté"],
   ];
   let rs = null, rAskedAt = 0, rEs = null, rLastAsk = 0;
+  const rPending = {}, rTimers = {};           // réglages touchés, pas encore envoyés
 
   function rPost(o) {
     o.v = 1; o.src = SRC; o.ts = Date.now();
@@ -497,6 +498,7 @@
   function rApply(msg) {
     let o; try { o = JSON.parse(msg); } catch { return; }
     if (!o || !o.state) return;
+    if (o.set) for (const k in rPending) o.set[k] = rPending[k];   // ne pas effacer ce qu'on touche
     rs = o; rAskedAt = 0;
     if (o.note) $("rNote").textContent = "Caméra : " + o.note;
     rRender();
@@ -596,8 +598,10 @@
       const hi = k === "exposure" ? s2.expMax : 10;
       const v = Math.max(lo, Math.min(hi, cur + d));
       if (v === cur) return;
-      s2[k] = v; rRender();                     // affichage tout de suite ; l'app confirmera
-      rCmd({ cmd: "set", key: k, value: v }, label.toLowerCase());
+      s2[k] = v; rPending[k] = v; rRender();    // affichage tout de suite ; l'app confirmera
+      // Plusieurs touchers de suite = UN seul message (limite de ntfy.sh : 250 messages / jour)
+      clearTimeout(rTimers[k]);
+      rTimers[k] = setTimeout(() => { delete rPending[k]; rCmd({ cmd: "set", key: k, value: v }, label.toLowerCase()); }, 800);
     };
     minus.onclick = () => step(-1);
     plus.onclick = () => step(1);
