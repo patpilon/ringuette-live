@@ -200,6 +200,17 @@
           <button class="rbtn" id="rArmR" aria-label="Bras à droite">▶</button>
         </div>
         <p class="hint" id="rArm"></p>
+        <div id="rStationsBox">
+          <p class="label">Positions du bras (à la prochaine calibration 🔄)</p>
+          <div class="seg" id="rStations">
+            <button data-n="0">Auto</button>
+            <button data-n="1">1</button>
+            <button data-n="2">2</button>
+            <button data-n="3">3</button>
+            <button data-n="4">4</button>
+            <button data-n="5">5</button>
+          </div>
+        </div>
         <div id="rZoomBox" class="rsec">
           <p class="label">Zoom (sans caméraman)</p>
           <div class="seg seg3" id="rZoom">
@@ -557,6 +568,9 @@
     $("rArmBox").hidden = !armShown;
     $("rArm").textContent = armShown ? rs.arm : "";
     $("rArmCal").disabled = !rs || !rs.armReady;
+    $("rStationsBox").hidden = !armShown;
+    const stn = rs && rs.set && typeof rs.set.armStations === "number" ? rs.set.armStations : null;
+    [...$("rStations").children].forEach((b) => { b.classList.toggle("on", stn === +b.dataset.n); b.disabled = stn === null; });
     $("rZoomBox").hidden = !rs || rs.cam !== "manual";
     if (rs) [...$("rZoom").children].forEach((b) => {
       const z = +b.dataset.z;
@@ -582,6 +596,7 @@
   $("rArmL").onclick = () => rCmd({ cmd: "arm", dir: -1 }, "bras ◀");
   $("rArmR").onclick = () => rCmd({ cmd: "arm", dir: 1 }, "bras ▶");
   $("rArmCal").onclick = () => rCmd({ cmd: "armcal" }, "calibrer le bras");
+  [...$("rStations").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "armStations", value: +b.dataset.n }, "positions du bras : " + b.textContent));
   [...$("rZoom").children].forEach((b) => b.onclick = () => rCmd({ cmd: "zoom", value: +b.dataset.z }, "zoom " + b.textContent));
   [...$("rQuality").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "quality", value: b.dataset.q }, "qualité " + b.textContent));
   document.querySelectorAll("[data-set]").forEach((c) => c.onchange = () => rCmd({ cmd: "set", key: c.dataset.set, value: c.checked }, "réglage"));
