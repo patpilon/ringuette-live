@@ -71,6 +71,28 @@
   .switch input:checked + span::after { transform: translateX(22px); }
   .disabled { opacity: .4; pointer-events: none; }
 
+  [hidden] { display: none !important; }
+  /* Télécommande de la caméra (v0.13.0) */
+  .rstat { border-radius: 12px; background: var(--card2); padding: 12px; font-weight: 700; display: grid; gap: 4px; }
+  .rstat .big { font-size: 20px; }
+  .rstat .big.live { color: var(--red); } .rstat .big.rec { color: var(--warn); }
+  .rstat .small { font-size: 13px; color: var(--muted); font-weight: 400; }
+  .rgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rgrid3 { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 8px; }
+  .rbtn { background: var(--card2); border-radius: 12px; padding: 14px 6px; font-weight: 800; font-size: 15px; }
+  .rbtn.rec { background: #5a4300; color: #ffe08a; }
+  .rbtn.live { background: #6b1414; color: #ffd0d0; }
+  .rbtn.stop { background: var(--red); color: #fff; }
+  .rbtn:disabled, .ctl:disabled, .seg button:disabled { opacity: .35; pointer-events: none; }
+  .seg3 { grid-template-columns: repeat(3, 1fr); }
+  .seg3 button { font-size: 13px; padding: 12px 2px; }
+  .seg2 { grid-template-columns: 1fr 1fr; }
+  .stepper { display: grid; grid-template-columns: 1fr 48px 64px 48px; gap: 6px; align-items: center; padding: 4px 0; }
+  .stepper output { text-align: center; font: 700 16px ui-monospace, Menlo, monospace; }
+  .stepper button { background: var(--card2); border-radius: 10px; height: 40px; font-size: 22px; font-weight: 800; }
+  details summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
+  .rsec { display: grid; gap: 8px; margin-top: 10px; }
+
   .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
   .foot { text-align: center; color: var(--muted); font-size: 12px; }
   .reset { background: none; color: var(--muted); text-decoration: underline; font-size: 14px; }
@@ -139,6 +161,72 @@
     <div class="toggle">
       <strong>Afficher le pointage sur la vidéo</strong>
       <label class="switch"><input type="checkbox" id="showOn" checked><span></span></label>
+    </div>
+  </section>
+
+  <section class="card" id="remoteCard">
+    <div class="toggle">
+      <strong>🎥 Contrôles de la caméra</strong>
+      <label class="switch"><input type="checkbox" id="rOpen"><span></span></label>
+    </div>
+    <div id="rBox" hidden>
+      <div class="rstat">
+        <div class="big" id="rState">En attente de la caméra…</div>
+        <div class="small" id="rInfo"></div>
+        <div class="small" id="rNote"></div>
+      </div>
+
+      <div class="rsec">
+        <div class="rgrid">
+          <button class="rbtn rec" id="rRec">● Enregistrer<br><small>sans diffuser</small></button>
+          <button class="rbtn live" id="rLive">● Direct YouTube<br><small>+ enregistrer</small></button>
+        </div>
+        <div class="rgrid">
+          <button class="rbtn stop" id="rStop">■ Arrêter</button>
+          <button class="rbtn" id="rMute">🎤 Micro</button>
+        </div>
+      </div>
+
+      <div class="rsec">
+        <p class="label">Caméraman</p>
+        <div class="seg seg3" id="rCam">
+          <button data-mode="manual">Aucun</button>
+          <button data-mode="crop">Sans bras</button>
+          <button data-mode="arm">Avec le bras</button>
+        </div>
+        <div id="rArmBox" class="rgrid3">
+          <button class="rbtn" id="rArmL" aria-label="Bras à gauche">◀</button>
+          <button class="rbtn" id="rArmCal">🔄 Calibrer</button>
+          <button class="rbtn" id="rArmR" aria-label="Bras à droite">▶</button>
+        </div>
+        <p class="hint" id="rArm"></p>
+        <div id="rZoomBox" class="rsec">
+          <p class="label">Zoom (sans caméraman)</p>
+          <div class="seg seg3" id="rZoom">
+            <button data-z="0.5">0,5×</button>
+            <button data-z="1">1×</button>
+            <button data-z="2">2×</button>
+          </div>
+        </div>
+      </div>
+
+      <details class="rsec" id="rSettings">
+        <summary>⚙ Réglages</summary>
+        <p class="label">Qualité du direct</p>
+        <div class="seg seg2" id="rQuality">
+          <button data-q="720">720p</button>
+          <button data-q="1080">1080p</button>
+        </div>
+        <p class="hint">Changeable seulement quand rien n'est en cours.</p>
+        <div class="toggle"><span>Garder une copie sur le téléphone</span><label class="switch"><input type="checkbox" data-set="record"><span></span></label></div>
+        <div class="toggle"><span>Direct public (sinon non répertorié)</span><label class="switch"><input type="checkbox" data-set="ytPublic"><span></span></label></div>
+        <div class="toggle"><span>Créer le direct YouTube automatiquement</span><label class="switch"><input type="checkbox" data-set="ytAuto"><span></span></label></div>
+        <div class="toggle"><span>Suivre l'anneau (caméraman)</span><label class="switch"><input type="checkbox" data-set="ringTrack"><span></span></label></div>
+        <p class="label" style="margin-top:10px">Image</p>
+        <div id="rSteppers"></div>
+      </details>
+
+      <p class="hint">La caméra répond en 1 à 3 secondes. <button class="reset" id="rRefresh">↻ Rafraîchir</button></p>
     </div>
   </section>
 
@@ -383,6 +471,157 @@
   render();
   setInterval(tick, 200);
   loadLatest();
+
+  // ── Télécommande de la caméra (v0.13.0) ──
+  // Commandes → sujet « <sujet>-cmd » ; l'app répond par son état sur « <sujet>-etat ».
+  // ntfy.sh limite chaque appareil à 250 messages par jour : pas d'interrogation en boucle.
+  const CMD = topic + "-cmd", ETAT = topic + "-etat";
+  const STATES = { IDLE: "Prête", CONNECTING: "Connexion à YouTube…", LIVE: "● EN DIRECT", RECONNECTING: "⟳ Reconnexion…", RECORD_ONLY: "● ENREGISTREMENT" };
+  const STEPS = [
+    ["exposure", "Exposition"], ["imgBright", "Luminosité"], ["imgContrast", "Contraste"],
+    ["imgSat", "Couleurs"], ["imgSharp", "Netteté"],
+  ];
+  let rs = null, rAskedAt = 0, rEs = null, rLastAsk = 0;
+
+  function rPost(o) {
+    o.v = 1; o.src = SRC; o.ts = Date.now();
+    const body = JSON.stringify(o);
+    rAskedAt = Date.now();
+    fetch(SERVER + "/" + CMD, { method: "POST", body })
+      .then((r) => { if (r.status === 429) $("rNote").textContent = "Trop de messages aujourd'hui (limite de ntfy.sh) : réessaie plus tard."; })
+      .catch(() => fetch(SERVER + "/" + CMD, { method: "POST", body, mode: "no-cors" }).catch(() => { $("rNote").textContent = "Hors ligne : commande non envoyée."; }));
+    rRender();
+  }
+  function rCmd(o, label) { $("rNote").textContent = "Envoyé : " + label + "…"; rPost(o); }
+
+  function rApply(msg) {
+    let o; try { o = JSON.parse(msg); } catch { return; }
+    if (!o || !o.state) return;
+    rs = o; rAskedAt = 0;
+    if (o.note) $("rNote").textContent = "Caméra : " + o.note;
+    rRender();
+  }
+  async function rConnect() {
+    try {
+      const r = await fetch(SERVER + "/" + ETAT + "/json?poll=1&since=latest");
+      const lines = (await r.text()).trim().split("\n").filter(Boolean);
+      const last = lines.length ? JSON.parse(lines[lines.length - 1]) : null;
+      if (last && last.message && !rs) rApply(last.message);
+    } catch {}
+    if (!rEs) {
+      try {
+        rEs = new EventSource(SERVER + "/" + ETAT + "/sse");
+        rEs.onmessage = (ev) => { try { const m = JSON.parse(ev.data); if (m.event === "message") rApply(m.message); } catch {} };
+      } catch {}
+    }
+    rAsk();
+  }
+  // Demander l'état ; l'app l'envoie ensuite d'elle-même à chaque changement pendant 15 min
+  function rAsk() { rLastAsk = Date.now(); rPost({ cmd: "etat" }); }
+
+  const hms = (ms) => { const t = Math.max(0, Math.floor(ms / 1000)); return Math.floor(t / 3600) + ":" + String(Math.floor(t / 60) % 60).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+  function rRender() {
+    const open = $("rOpen").checked;
+    $("rBox").hidden = !open;
+    if (!open) return;
+    const waiting = rAskedAt && Date.now() - rAskedAt > 8000;
+    if (!rs) {
+      $("rState").textContent = waiting ? "Pas de réponse de la caméra" : "En attente de la caméra…";
+      $("rInfo").textContent = waiting ? "L'app est-elle ouverte, avec « Permettre de contrôler la caméra » coché (bouton 🥅 de l'app)?" : "";
+    } else {
+      const st = STATES[rs.state] || rs.state;
+      $("rState").textContent = st + (rs.since > 0 ? "  " + hms(Date.now() - rs.since) : "");
+      $("rState").className = "big " + (rs.state === "LIVE" ? "live" : rs.state === "RECORD_ONLY" ? "rec" : "");
+      const age = Date.now() - rs.ts;
+      const bits = [];
+      if (rs.state === "LIVE") bits.push(rs.mbps.toFixed(1).replace(".", ",") + " Mb/s");
+      if (rs.battery) bits.push(rs.battery);
+      bits.push("🔍 " + rs.zoom);
+      if (rs.muted) bits.push("🔇 micro coupé");
+      if (rs.ytBusy) bits.push("création du direct YouTube…");
+      if (waiting) bits.push("⚠ pas de réponse à la dernière commande");
+      else if (age > 60000) bits.push("(état d'il y a " + Math.round(age / 60000) + " min)");
+      $("rInfo").textContent = bits.join(" · ");
+    }
+    const active = rs && rs.state !== "IDLE";
+    const known = !!rs;
+    $("rRec").disabled = !known || active;
+    $("rLive").disabled = !known || active;
+    $("rStop").disabled = !known || !active;
+    $("rMute").disabled = !known;
+    $("rMute").textContent = rs && rs.muted ? "🔇 Rallumer le micro" : "🎤 Couper le micro";
+    [...$("rCam").children].forEach((b) => { b.classList.toggle("on", !!rs && rs.cam === b.dataset.mode); b.disabled = !known; });
+    const armShown = !!rs && (rs.cam === "arm" || rs.armOn);
+    $("rArmBox").hidden = !armShown;
+    $("rArm").textContent = armShown ? rs.arm : "";
+    $("rArmCal").disabled = !rs || !rs.armReady;
+    $("rZoomBox").hidden = !rs || rs.cam !== "manual";
+    if (rs) [...$("rZoom").children].forEach((b) => {
+      const z = +b.dataset.z;
+      b.classList.toggle("on", Math.abs(rs.lens - z) < 0.06 || (z === 0.5 && rs.lens < 0.99 && rs.lens <= rs.lensMin + 0.01));
+      b.disabled = z < 1 && rs.lensMin >= 0.99;
+    });
+    const set = rs && rs.set;
+    [...$("rQuality").children].forEach((b) => { b.classList.toggle("on", !!set && set.quality === b.dataset.q); b.disabled = !set || active; });
+    document.querySelectorAll("[data-set]").forEach((c) => { if (set) c.checked = !!set[c.dataset.set]; c.disabled = !set; });
+    STEPS.forEach(([k]) => {
+      const out = $("rv_" + k);
+      if (!set) { out.textContent = "–"; return; }
+      out.textContent = k === "exposure" ? ((set.exposure * set.expStep >= 0 ? "+" : "") + (set.exposure * set.expStep).toFixed(1).replace(".", ",")) : ((set[k] > 0 && k !== "imgSharp" ? "+" : "") + set[k]);
+    });
+  }
+
+  // Boutons
+  $("rRec").onclick = () => { if (confirm("Démarrer l'enregistrement sur le téléphone de la caméra (sans diffuser)?")) rCmd({ cmd: "start", mode: "record" }, "enregistrer"); };
+  $("rLive").onclick = () => { if (confirm("Démarrer le DIRECT YouTube (et l'enregistrement)?")) rCmd({ cmd: "start", mode: "live" }, "diffuser"); };
+  $("rStop").onclick = () => { if (confirm(rs && rs.state === "RECORD_ONLY" ? "Arrêter l'enregistrement?" : "Arrêter le direct et l'enregistrement?")) rCmd({ cmd: "stop" }, "arrêter"); };
+  $("rMute").onclick = () => rCmd({ cmd: "mute", on: !(rs && rs.muted) }, "micro");
+  [...$("rCam").children].forEach((b) => b.onclick = () => rCmd({ cmd: "cam", mode: b.dataset.mode }, "caméraman : " + b.textContent));
+  $("rArmL").onclick = () => rCmd({ cmd: "arm", dir: -1 }, "bras ◀");
+  $("rArmR").onclick = () => rCmd({ cmd: "arm", dir: 1 }, "bras ▶");
+  $("rArmCal").onclick = () => rCmd({ cmd: "armcal" }, "calibrer le bras");
+  [...$("rZoom").children].forEach((b) => b.onclick = () => rCmd({ cmd: "zoom", value: +b.dataset.z }, "zoom " + b.textContent));
+  [...$("rQuality").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "quality", value: b.dataset.q }, "qualité " + b.textContent));
+  document.querySelectorAll("[data-set]").forEach((c) => c.onchange = () => rCmd({ cmd: "set", key: c.dataset.set, value: c.checked }, "réglage"));
+  STEPS.forEach(([k, label]) => {
+    const row = document.createElement("div");
+    row.className = "stepper";
+    row.innerHTML = '<span></span><button aria-label="Moins">−</button><output id="rv_' + k + '">–</output><button aria-label="Plus">+</button>';
+    row.firstChild.textContent = label;
+    const [minus, , plus] = [...row.children].slice(1);
+    const step = (d) => {
+      if (!rs || !rs.set) return;
+      const s2 = rs.set, cur = s2[k];
+      const lo = k === "exposure" ? s2.expMin : k === "imgSharp" ? 0 : -10;
+      const hi = k === "exposure" ? s2.expMax : 10;
+      const v = Math.max(lo, Math.min(hi, cur + d));
+      if (v === cur) return;
+      s2[k] = v; rRender();                     // affichage tout de suite ; l'app confirmera
+      rCmd({ cmd: "set", key: k, value: v }, label.toLowerCase());
+    };
+    minus.onclick = () => step(-1);
+    plus.onclick = () => step(1);
+    $("rSteppers").appendChild(row);
+  });
+  $("rRefresh").onclick = () => rAsk();
+  $("rOpen").onchange = () => {
+    store.set("ringuette:remote", $("rOpen").checked);
+    rRender();
+    if ($("rOpen").checked) rConnect();
+  };
+  $("rOpen").checked = store.get("ringuette:remote", false);
+  // Panneau ouvert : redemander l'état au retour sur la page, et toutes les 10 min (l'app
+  // n'envoie ses changements que 15 min après la dernière demande)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && $("rOpen").checked && Date.now() - rLastAsk > 30000) rAsk();
+  });
+  setInterval(() => {
+    if (!$("rOpen").checked) return;
+    if (document.visibilityState === "visible" && Date.now() - rLastAsk > 10 * 60000) rAsk();
+    rRender();
+  }, 1000);
+  rRender();
+  if ($("rOpen").checked) rConnect();
 })();
 </script>
 </body>
