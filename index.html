@@ -87,6 +87,9 @@
   .seg3 { grid-template-columns: repeat(3, 1fr); }
   .seg3 button { font-size: 13px; padding: 12px 2px; }
   .seg2 { grid-template-columns: 1fr 1fr; }
+  .seg5 { grid-template-columns: repeat(5, 1fr); }
+  .seg5 button { font-size: 13px; padding: 12px 0; }
+  .rwide { width: 100%; text-align: left; padding: 12px 14px; font-weight: 700; font-size: 14px; }
   .stepper { display: grid; grid-template-columns: 1fr 48px 64px 48px; gap: 6px; align-items: center; padding: 4px 0; }
   .stepper output { text-align: center; font: 700 16px ui-monospace, Menlo, monospace; }
   .stepper button { background: var(--card2); border-radius: 10px; height: 40px; font-size: 22px; font-weight: 800; }
@@ -194,12 +197,15 @@
           <button data-mode="crop">Sans bras</button>
           <button data-mode="arm">Avec le bras</button>
         </div>
+        <div class="toggle"><span>Utiliser le bras « RingetteCam »</span><label class="switch"><input type="checkbox" data-set="armOn"><span></span></label></div>
         <div id="rArmBox" class="rgrid3">
           <button class="rbtn" id="rArmL" aria-label="Bras à gauche">◀</button>
           <button class="rbtn" id="rArmCal">🔄 Calibrer</button>
           <button class="rbtn" id="rArmR" aria-label="Bras à droite">▶</button>
         </div>
         <p class="hint" id="rArm"></p>
+        <button class="rbtn rwide" id="rArmMan">✋ Calibrer à la main (si l'automatique se trompe)</button>
+        <p class="hint" id="rArmManHint" hidden>Calibration à la main : avec ◀ ▶, amène le bout GAUCHE de la glace au bord gauche de l'image, touche « 🔄 Noter le bout » ; puis le bout DROIT au bord droit, et « 🔄 Noter le bout ».</p>
         <div id="rStationsBox">
           <p class="label">Positions du bras (à la prochaine calibration 🔄)</p>
           <div class="seg" id="rStations">
@@ -210,14 +216,46 @@
             <button data-n="4">4</button>
             <button data-n="5">5</button>
           </div>
+          <p class="label">Arrêts du bras (à la prochaine calibration 🔄)</p>
+          <div class="seg seg2" id="rFree">
+            <button data-free="0">Positions fixes</button>
+            <button data-free="1">Libres</button>
+          </div>
+          <p class="label">Vitesse du bras</p>
+          <div class="seg seg3" id="rArmSpeed">
+            <button data-n="0">Douce</button>
+            <button data-n="1">Normale</button>
+            <button data-n="2">Vive</button>
+          </div>
+          <div class="toggle"><span>Zoom selon la position (zones éloignées zoomées)</span><label class="switch"><input type="checkbox" data-set="armEven"><span></span></label></div>
+          <p class="hint" id="rArmViews"></p>
+        </div>
+        <div id="rCropBox" class="rsec">
+          <p class="label">Caméraman sans bras</p>
+          <div class="stepper"><span>Zoom maximal</span><button aria-label="Moins" id="rMaxZm">−</button><output id="rMaxZ">–</output><button aria-label="Plus" id="rMaxZp">+</button></div>
+          <p class="label">Réactivité</p>
+          <div class="seg seg3" id="rAutoSpeed">
+            <button data-n="0">Calme</button>
+            <button data-n="1">Normale</button>
+            <button data-n="2">Rapide</button>
+          </div>
+          <button class="rbtn rwide" id="rRink">Contour de la glace : retracer maintenant</button>
+          <div class="toggle"><span>Capture 4K (recadrage plus net)</span><label class="switch"><input type="checkbox" data-set="cap4k"><span></span></label></div>
         </div>
         <div id="rZoomBox" class="rsec">
-          <p class="label">Zoom (sans caméraman)</p>
-          <div class="seg seg3" id="rZoom">
+          <p class="label" id="rZoomLabel">Zoom</p>
+          <div class="seg seg5" id="rZoom">
             <button data-z="0.5">0,5×</button>
+            <button data-z="0.7">0,7×</button>
             <button data-z="1">1×</button>
+            <button data-z="1.5">1,5×</button>
             <button data-z="2">2×</button>
           </div>
+          <div class="rgrid">
+            <button class="rbtn" id="rZoomOut">− Plus large</button>
+            <button class="rbtn" id="rZoomIn">+ Plus serré</button>
+          </div>
+          <p class="hint" id="rZoomHint"></p>
         </div>
       </div>
 
@@ -231,10 +269,24 @@
         <p class="hint">Changeable seulement quand rien n'est en cours.</p>
         <div class="toggle"><span>Garder une copie sur le téléphone</span><label class="switch"><input type="checkbox" data-set="record"><span></span></label></div>
         <div class="toggle"><span>Direct public (sinon non répertorié)</span><label class="switch"><input type="checkbox" data-set="ytPublic"><span></span></label></div>
+        <div class="toggle"><span>Conçu pour les enfants (coupe les notifications aux abonnés)</span><label class="switch"><input type="checkbox" data-set="ytKids"><span></span></label></div>
         <div class="toggle"><span>Créer le direct YouTube automatiquement</span><label class="switch"><input type="checkbox" data-set="ytAuto"><span></span></label></div>
+        <div class="toggle"><span>Connexion sécurisée (RTMPS)</span><label class="switch"><input type="checkbox" data-set="rtmps"><span></span></label></div>
+        <div class="toggle"><span>60 images/s si la caméra le permet</span><label class="switch"><input type="checkbox" data-set="fps60"><span></span></label></div>
         <div class="toggle"><span>Suivre l'anneau (caméraman)</span><label class="switch"><input type="checkbox" data-set="ringTrack"><span></span></label></div>
         <p class="label" style="margin-top:10px">Image</p>
-        <div id="rSteppers"></div>
+        <div class="seg seg2" id="rImgMode">
+          <button data-auto="1">Auto</button>
+          <button data-auto="0">Manuel</button>
+        </div>
+        <p class="hint" id="rImgAutoHint">Auto : l'app règle l'exposition, la netteté, le contraste, la luminosité et les couleurs.</p>
+        <div id="rImgManual">
+          <div id="rSteppers"></div>
+          <button class="rbtn rwide" id="rWb">Balance des blancs : –</button>
+          <button class="rbtn rwide" id="rFlicker" style="margin-top:8px">Anti-scintillement : –</button>
+          <div class="toggle"><span>Verrouiller l'exposition</span><label class="switch"><input type="checkbox" data-set="aeLock"><span></span></label></div>
+        </div>
+        <button class="reset" id="rImgReset">Remettre l'image d'origine</button>
       </details>
 
       <p class="hint">La caméra répond en 1 à 3 secondes. <button class="reset" id="rRefresh">↻ Rafraîchir</button></p>
@@ -492,7 +544,7 @@
     ["exposure", "Exposition"], ["imgBright", "Luminosité"], ["imgContrast", "Contraste"],
     ["imgSat", "Couleurs"], ["imgSharp", "Netteté"],
   ];
-  let rs = null, rAskedAt = 0, rEs = null, rLastAsk = 0;
+  let rs = null, rAskedAt = 0, rEs = null, rLastAsk = 0, zPend = null, zTimer = 0;
   const rPending = {}, rTimers = {};           // réglages touchés, pas encore envoyés
 
   function rPost(o) {
@@ -571,13 +623,45 @@
     $("rStationsBox").hidden = !armShown;
     const stn = rs && rs.set && typeof rs.set.armStations === "number" ? rs.set.armStations : null;
     [...$("rStations").children].forEach((b) => { b.classList.toggle("on", stn === +b.dataset.n); b.disabled = stn === null; });
-    $("rZoomBox").hidden = !rs || rs.cam !== "manual";
+    // v0.14.0 : arrêts libres (désactivé si l'app est plus vieille et n'envoie pas la valeur)
+    const free = rs && rs.set && typeof rs.set.armFree === "boolean" ? rs.set.armFree : null;
+    [...$("rFree").children].forEach((b) => { b.classList.toggle("on", free !== null && free === (b.dataset.free === "1")); b.disabled = free === null; });
+    const set = rs && rs.set;
+    // v0.14.1 : calibration à la main, vitesse, zoom selon la position
+    const manual = !!rs && !!rs.armManual;
+    $("rArmCal").textContent = manual ? "🔄 Noter le bout" : "🔄 Calibrer";
+    $("rArmMan").hidden = !armShown || manual;
+    $("rArmMan").disabled = !rs || !rs.armReady;
+    $("rArmManHint").hidden = !armShown || !manual;
+    [...$("rArmSpeed").children].forEach((b) => { b.classList.toggle("on", !!set && set.armSpeed === +b.dataset.n); b.disabled = !set || typeof set.armSpeed !== "number"; });
+    $("rArmViews").textContent = set && set.armEven && rs.armViews ? "Zoom de chaque position : " + rs.armViews : (set && set.armEven ? "Calculé à la calibration 🔄." : "");
+    // Caméraman sans bras
+    $("rCropBox").hidden = !rs || rs.cam !== "crop";
+    const mz = rPending.autoMaxZoom !== undefined ? rPending.autoMaxZoom : set && set.autoMaxZoom;
+    $("rMaxZ").textContent = typeof mz === "number" ? mz.toFixed(2).replace(/0$/, "").replace(".", ",") + "×" : "–";
+    [...$("rAutoSpeed").children].forEach((b) => { b.classList.toggle("on", !!set && set.autoSpeed === +b.dataset.n); b.disabled = !set || typeof set.autoSpeed !== "number"; });
+    // Zoom : à la main sans caméraman, ou zoom du bras (comme pincer l'écran)
+    $("rZoomBox").hidden = !rs || rs.cam === "crop";
+    const armZ = !!rs && rs.cam === "arm";
+    $("rZoomLabel").textContent = armZ ? "Zoom du bras (avant 🔄 Calibrer)" : "Zoom";
     if (rs) [...$("rZoom").children].forEach((b) => {
       const z = +b.dataset.z;
       b.classList.toggle("on", Math.abs(rs.lens - z) < 0.06 || (z === 0.5 && rs.lens < 0.99 && rs.lens <= rs.lensMin + 0.01));
       b.disabled = z < 1 && rs.lensMin >= 0.99;
     });
-    const set = rs && rs.set;
+    $("rZoomIn").disabled = $("rZoomOut").disabled = !rs;
+    $("rZoomHint").textContent = zPend !== null ? "→ " + zPend.toFixed(2).replace(".", ",") + "× (envoi…)"
+      : armZ ? "Même effet que pincer l'écran de la caméra. Change-le AVANT la calibration : pendant le suivi, ça arrête le bras (il faut refaire 🔄)." : "";
+    // Image Auto / Manuel
+    const imgAuto = !!set && !!set.imgAuto;
+    [...$("rImgMode").children].forEach((b) => { b.classList.toggle("on", !!set && imgAuto === (b.dataset.auto === "1")); b.disabled = !set; });
+    $("rImgManual").hidden = imgAuto;
+    $("rImgAutoHint").hidden = !imgAuto;
+    $("rWb").textContent = "Balance des blancs : " + (set && set.wb ? set.wb : "–") + "  ▸";
+    $("rFlicker").textContent = "Anti-scintillement : " + (set && set.antibanding ? set.antibanding : "–") + "  ▸";
+    $("rWb").disabled = !set || !set.wb;
+    $("rFlicker").disabled = !set || !set.antibanding;
+    $("rImgReset").disabled = !set;
     [...$("rQuality").children].forEach((b) => { b.classList.toggle("on", !!set && set.quality === b.dataset.q); b.disabled = !set || active; });
     document.querySelectorAll("[data-set]").forEach((c) => { if (set) c.checked = !!set[c.dataset.set]; c.disabled = !set; });
     STEPS.forEach(([k]) => {
@@ -597,7 +681,44 @@
   $("rArmR").onclick = () => rCmd({ cmd: "arm", dir: 1 }, "bras ▶");
   $("rArmCal").onclick = () => rCmd({ cmd: "armcal" }, "calibrer le bras");
   [...$("rStations").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "armStations", value: +b.dataset.n }, "positions du bras : " + b.textContent));
-  [...$("rZoom").children].forEach((b) => b.onclick = () => rCmd({ cmd: "zoom", value: +b.dataset.z }, "zoom " + b.textContent));
+  [...$("rFree").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "armFree", value: b.dataset.free === "1" }, "arrêts du bras : " + b.textContent.toLowerCase()));
+  // Zoom (v0.14.1 : aussi le zoom du bras). Pendant le suivi, changer le zoom arrête le bras.
+  const zoomOk = () => !(rs && rs.cam === "arm" && rs.armFollowing) || confirm("Changer le zoom arrête le suivi du bras : il faudra refaire 🔄 Calibrer. Continuer?");
+  [...$("rZoom").children].forEach((b) => b.onclick = () => { if (zoomOk()) rCmd({ cmd: "zoom", value: +b.dataset.z }, "zoom " + b.textContent); });
+  const zoomStep = (f) => {
+    if (!rs) return;
+    if (zPend === null && !zoomOk()) return;
+    const hi = rs.cam === "arm" ? 4 : 8;
+    zPend = Math.max(rs.lensMin || 0.5, Math.min(hi, (zPend !== null ? zPend : rs.lens) * f));
+    rRender();
+    // Plusieurs touchers de suite = UN seul message
+    clearTimeout(zTimer);
+    zTimer = setTimeout(() => { const z = zPend; zPend = null; rCmd({ cmd: "zoom", value: Math.round(z * 100) / 100 }, "zoom"); }, 800);
+  };
+  $("rZoomIn").onclick = () => zoomStep(1.15);
+  $("rZoomOut").onclick = () => zoomStep(1 / 1.15);
+  // Bras : calibration à la main, vitesse
+  $("rArmMan").onclick = () => { if (confirm("Calibration à la main : tu amènes toi-même le bras à chaque bout de la glace avec ◀ ▶. Commencer?")) rCmd({ cmd: "armcal", manual: true }, "calibration à la main"); };
+  [...$("rArmSpeed").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "armSpeed", value: +b.dataset.n }, "vitesse du bras : " + b.textContent.toLowerCase()));
+  // Caméraman sans bras
+  const maxZStep = (d) => {
+    if (!rs || !rs.set || typeof rs.set.autoMaxZoom !== "number") return;
+    const cur = rPending.autoMaxZoom !== undefined ? rPending.autoMaxZoom : rs.set.autoMaxZoom;
+    const v = Math.max(1, Math.min(8, Math.round((cur + d) * 4) / 4));
+    if (v === cur) return;
+    rPending.autoMaxZoom = v; rRender();
+    clearTimeout(rTimers.autoMaxZoom);
+    rTimers.autoMaxZoom = setTimeout(() => { delete rPending.autoMaxZoom; rCmd({ cmd: "set", key: "autoMaxZoom", value: v }, "zoom maximal"); }, 800);
+  };
+  $("rMaxZm").onclick = () => maxZStep(-0.25);
+  $("rMaxZp").onclick = () => maxZStep(0.25);
+  [...$("rAutoSpeed").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "autoSpeed", value: +b.dataset.n }, "réactivité : " + b.textContent.toLowerCase()));
+  $("rRink").onclick = () => rCmd({ cmd: "rink" }, "retracer le contour");
+  // Image
+  [...$("rImgMode").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "imgAuto", value: b.dataset.auto === "1" }, "image : " + b.textContent.toLowerCase()));
+  $("rWb").onclick = () => rCmd({ cmd: "set", key: "wb", value: "next" }, "balance des blancs");
+  $("rFlicker").onclick = () => rCmd({ cmd: "set", key: "antibanding", value: "next" }, "anti-scintillement");
+  $("rImgReset").onclick = () => { if (confirm("Remettre l'image d'origine (exposition, balance des blancs, netteté, contraste, luminosité, couleurs)?")) rCmd({ cmd: "imgreset" }, "image d'origine"); };
   [...$("rQuality").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "quality", value: b.dataset.q }, "qualité " + b.textContent));
   document.querySelectorAll("[data-set]").forEach((c) => c.onchange = () => rCmd({ cmd: "set", key: c.dataset.set, value: c.checked }, "réglage"));
   STEPS.forEach(([k, label]) => {
