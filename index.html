@@ -216,10 +216,12 @@
             <button data-n="4">4</button>
             <button data-n="5">5</button>
           </div>
-          <p class="label">Arrêts du bras (à la prochaine calibration 🔄)</p>
-          <div class="seg seg2" id="rFree">
-            <button data-free="0">Positions fixes</button>
-            <button data-free="1">Libres</button>
+          <p class="label">Mouvement du bras (à la prochaine calibration 🔄)</p>
+          <div class="seg seg4" id="rFree">
+            <button data-move="fixed">Positions fixes</button>
+            <button data-move="free">Arrêts libres</button>
+            <button data-move="sweep">Suivi continu</button>
+            <button data-move="wide">Grand-angle</button>
           </div>
           <p class="label">Vitesse du bras</p>
           <div class="seg seg3" id="rArmSpeed">
@@ -227,8 +229,17 @@
             <button data-n="1">Normale</button>
             <button data-n="2">Vive</button>
           </div>
+          <div class="toggle"><span>Zoom automatique à la calibration (toute la glace)</span><label class="switch"><input type="checkbox" data-set="armZoomAuto"><span></span></label></div>
+          <div class="toggle"><span>Suivi continu guidé par l'IA (sur le téléphone)</span><label class="switch"><input type="checkbox" data-set="armAi"><span></span></label></div>
+          <p class="label">Suivi continu : zoom dans les zones (toute la zone quand le jeu y est)</p>
+          <div class="seg seg3" id="rZones">
+            <button data-zones="red">Ligne rouge</button>
+            <button data-zones="blue">Ligne bleue</button>
+            <button data-zones="off">Non</button>
+          </div>
           <div class="toggle"><span>Zoom selon la position (zones éloignées zoomées)</span><label class="switch"><input type="checkbox" data-set="armEven"><span></span></label></div>
           <p class="hint" id="rArmViews"></p>
+          <div class="toggle"><span>Grand-angle : vue de toute la zone quand le jeu y est</span><label class="switch"><input type="checkbox" data-set="wideZones"><span></span></label></div>
         </div>
         <div id="rCropBox" class="rsec">
           <p class="label">Caméraman sans bras</p>
@@ -624,8 +635,11 @@
     const stn = rs && rs.set && typeof rs.set.armStations === "number" ? rs.set.armStations : null;
     [...$("rStations").children].forEach((b) => { b.classList.toggle("on", stn === +b.dataset.n); b.disabled = stn === null; });
     // v0.14.0 : arrêts libres (désactivé si l'app est plus vieille et n'envoie pas la valeur)
-    const free = rs && rs.set && typeof rs.set.armFree === "boolean" ? rs.set.armFree : null;
-    [...$("rFree").children].forEach((b) => { b.classList.toggle("on", free !== null && free === (b.dataset.free === "1")); b.disabled = free === null; });
+    // v0.15.0 : 3 choix (armMove) ; app 0.14.x : armFree seulement (pas de « suivi continu »)
+    const mv = rs && rs.set ? (typeof rs.set.armMove === "string" ? rs.set.armMove
+      : typeof rs.set.armFree === "boolean" ? (rs.set.armFree ? "free" : "fixed") : null) : null;
+    const hasMove = !!(rs && rs.set && typeof rs.set.armMove === "string");
+    [...$("rFree").children].forEach((b) => { b.classList.toggle("on", mv === b.dataset.move); b.disabled = mv === null || (b.dataset.move === "sweep" && !hasMove) || (b.dataset.move === "wide" && !(rs.set && typeof rs.set.wideView === "number")); });
     const set = rs && rs.set;
     // v0.14.1 : calibration à la main, vitesse, zoom selon la position
     const manual = !!rs && !!rs.armManual;
@@ -634,6 +648,8 @@
     $("rArmMan").disabled = !rs || !rs.armReady;
     $("rArmManHint").hidden = !armShown || !manual;
     [...$("rArmSpeed").children].forEach((b) => { b.classList.toggle("on", !!set && set.armSpeed === +b.dataset.n); b.disabled = !set || typeof set.armSpeed !== "number"; });
+    // v0.18.4 : zoom dans les zones (suivi continu)
+    [...$("rZones").children].forEach((b) => { b.classList.toggle("on", !!set && set.armZones === b.dataset.zones); b.disabled = !set || typeof set.armZones !== "string"; });
     $("rArmViews").textContent = set && set.armEven && rs.armViews ? "Zoom de chaque position : " + rs.armViews : (set && set.armEven ? "Calculé à la calibration 🔄." : "");
     // Caméraman sans bras
     $("rCropBox").hidden = !rs || rs.cam !== "crop";
@@ -681,7 +697,12 @@
   $("rArmR").onclick = () => rCmd({ cmd: "arm", dir: 1 }, "bras ▶");
   $("rArmCal").onclick = () => rCmd({ cmd: "armcal" }, "calibrer le bras");
   [...$("rStations").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "armStations", value: +b.dataset.n }, "positions du bras : " + b.textContent));
-  [...$("rFree").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "armFree", value: b.dataset.free === "1" }, "arrêts du bras : " + b.textContent.toLowerCase()));
+  [...$("rZones").children].forEach((b) => b.onclick = () => rCmd({ cmd: "set", key: "armZones", value: b.dataset.zones }, "zoom dans les zones : " + b.textContent.toLowerCase()));
+  [...$("rFree").children].forEach((b) => b.onclick = () => {
+    const newApp = !!(rs && rs.set && typeof rs.set.armMove === "string");
+    rCmd(newApp ? { cmd: "set", key: "armMove", value: b.dataset.move } : { cmd: "set", key: "armFree", value: b.dataset.move === "free" },
+      "mouvement du bras : " + b.textContent.toLowerCase());
+  });
   // Zoom (v0.14.1 : aussi le zoom du bras). Pendant le suivi, changer le zoom arrête le bras.
   const zoomOk = () => !(rs && rs.cam === "arm" && rs.armFollowing) || confirm("Changer le zoom arrête le suivi du bras : il faudra refaire 🔄 Calibrer. Continuer?");
   [...$("rZoom").children].forEach((b) => b.onclick = () => { if (zoomOk()) rCmd({ cmd: "zoom", value: +b.dataset.z }, "zoom " + b.textContent); });
